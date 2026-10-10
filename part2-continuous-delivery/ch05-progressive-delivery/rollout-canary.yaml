@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: quote-service
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: quote-service
+  template:
+    metadata:
+      labels:
+        app: quote-service
+    spec:
+      containers:
+        - name: quote-service
+          # Pinned by digest, per Chapter 4. The rollout controls how this
+          # known artifact reaches traffic, not which artifact it is.
+          image: ghcr.io/vertexpress/quote-service@sha256:REPLACE_WITH_DIGEST
+          ports:
+            - containerPort: 8080
+  strategy:
+    canary:
+      # Each setWeight sends that percentage of traffic to the new version.
+      # Each pause gates promotion on the analysis below.
+      steps:
+        - setWeight: 5
+        - pause: {duration: 5m}
+        - analysis:
+            templates:
+              - templateName: success-rate
+        - setWeight: 25
+        - pause: {duration: 10m}
+        - analysis:
+            templates:
+              - templateName: success-rate
+        - setWeight: 50
+        - pause: {duration: 10m}
+        - setWeight: 100

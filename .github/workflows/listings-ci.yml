@@ -1,0 +1,47 @@
+name: listings gate
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 1 * *"   # monthly: catch tool drift before readers do
+jobs:
+  static-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with: { go-version: "stable" }
+      - name: YAML parses
+        run: |
+          python3 - <<'PY'
+          import glob, sys, yaml
+          bad = 0
+          for f in glob.glob("**/*.yaml", recursive=True):
+              try:
+                  list(yaml.safe_load_all(open(f)))
+              except Exception as e:
+                  print(f"YAML FAIL {f}: {e}"); bad += 1
+          sys.exit(1 if bad else 0)
+          PY
+      - name: JSON parses
+        run: |
+          python3 - <<'PY'
+          import glob, json, sys
+          bad = 0
+          for f in glob.glob("**/*.json", recursive=True):
+              try: json.load(open(f))
+              except Exception as e: print(f"JSON FAIL {f}: {e}"); bad += 1
+          sys.exit(1 if bad else 0)
+          PY
+      - name: Go formats
+        run: gofmt -l $(find . -name '*.go') | tee /tmp/gofmt.out; test ! -s /tmp/gofmt.out
+      - name: Shell parses
+        run: for f in $(find . -name '*.sh'); do bash -n "$f"; done
+      - name: Python compiles
+        run: python3 -m py_compile $(find . -name '*.py')
+      - name: Terraform formats
+        uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive || echo "fmt drift (non-blocking in static gate)"
+  # A fuller job with a cluster, Vault, and Kyverno runs the platform-dependent
+  # checks (kubeconform, kyverno test, terraform validate). Add it when the lab
+  # environment is provisioned; the static gate above needs no platform.

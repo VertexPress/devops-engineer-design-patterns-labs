@@ -1,0 +1,24 @@
+groups:
+  - name: quote_service_burn_rate
+    rules:
+      # FAST BURN: 14.4x exhausts a 99.9% 30-day budget in ~2 days. Requires a
+      # 5m window confirmed by a 1h window. Pages.
+      - alert: QuoteServiceErrorBudgetFastBurn
+        expr: |
+          (1 - sli:quote_availability:ratio_rate5m) > (14.4 * 0.001)
+          and
+          (1 - sli:quote_availability:ratio_rate1h) > (14.4 * 0.001)
+        for: 2m
+        labels: {severity: page}
+        annotations:
+          summary: "Quote service is burning error budget fast (users affected now)"
+      # SLOW BURN: 3x lasts ~10 days. 1h confirmed by 6h. Tickets.
+      - alert: QuoteServiceErrorBudgetSlowBurn
+        expr: |
+          (1 - sli:quote_availability:ratio_rate1h) > (3 * 0.001)
+          and
+          (1 - sli:quote_availability:ratio_rate6h) > (3 * 0.001)
+        for: 15m
+        labels: {severity: ticket}
+        annotations:
+          summary: "Quote service is burning error budget slowly (investigate today)"

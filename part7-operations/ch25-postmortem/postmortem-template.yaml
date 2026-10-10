@@ -1,0 +1,21 @@
+postmortem:
+  incident_id: INC-2026-0142
+  summary: "Quote service returned errors for 12 minutes after a config change."
+  impact:
+    duration: 12m
+    user_impact: "~2% of quote requests failed"
+    budget_spent: "~0.6% of the 28-day error budget"
+  timeline:
+    - {t: "14:02", event: "config change reducing DB timeout to 500ms deployed"}
+    - {t: "14:03", event: "error rate began climbing on slow-but-valid queries"}
+    - {t: "14:07", event: "burn-rate alert fired, on-call engaged"}
+    - {t: "14:14", event: "change identified and rolled back; errors cleared"}
+  analysis:
+    what_allowed_it:
+      - "the timeout change shipped to 100% at once, not progressively"
+      - "no pre-prod test exercised the slow-but-valid query path"
+      - "the 500ms value was plausible; nothing flagged it as risky"
+  action_items:
+    - {id: AI-1, action: "ship config changes via canary (Chapter 5)", owner: eng-c, due: "2026-10-24", status: open}
+    - {id: AI-2, action: "add slow-query case to pre-prod suite", owner: eng-a, due: "2026-10-31", status: open}
+    - {id: AI-3, action: "lint warn on DB timeout below 1s", owner: eng-d, due: "2026-11-07", status: open}

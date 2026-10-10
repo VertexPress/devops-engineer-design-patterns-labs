@@ -1,0 +1,61 @@
+name: build-once-promote
+on:
+  push:
+    branches: [main]
+ 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v5
+ 
+      - name: Log in to the registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+ 
+      # Build the artifact exactly once. The digest this step emits is the
+      # identity we promote. No later stage rebuilds from source.
+      - name: Build and push by digest
+        id: push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          provenance: true
+ 
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v5
+      # Deploy the exact digest the build produced, not a floating tag.
+      # Staging configuration is supplied here, from outside the artifact.
+      - name: Deploy digest to staging
+        run: |
+          ./deploy.sh \
+            --image "ghcr.io/${{ github.repository }}@${{ needs.build.outputs.digest }}" \
+            --config environments/staging.env
+ 
+  deploy-production:
+    needs: [build, deploy-staging]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+      # The identical digest validated in staging. Production differs only
+      # in the config file, never in the bytes being deployed.
+      - name: Deploy digest to production
+        run: |
+          ./deploy.sh \
+            --image "ghcr.io/${{ github.repository }}@${{ needs.build.outputs.digest }}" \
+            --config environments/production.env

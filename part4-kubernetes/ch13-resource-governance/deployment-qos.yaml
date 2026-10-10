@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quote-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: quote-service
+  template:
+    metadata:
+      labels:
+        app: quote-service
+    spec:
+      containers:
+        - name: quote-service
+          image: ghcr.io/vertexpress/quote-service@sha256:REPLACE_WITH_DIGEST
+          resources:
+            # Guaranteed QoS: for EVERY container, cpu request == cpu limit AND
+            # memory request == memory limit. That is what earns the highest
+            # QoS class and the last eviction priority under pressure.
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"      # equal to request: required for Guaranteed
+              memory: "512Mi"  # equal to request: no overcommit, no OOM surprise

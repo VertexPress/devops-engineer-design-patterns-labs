@@ -1,0 +1,29 @@
+groups:
+  - name: quote_service_sli
+    interval: 30s
+    rules:
+      # AVAILABILITY SLI (5m). good = non-5xx AND non-4xx (2xx/3xx);
+      # valid = non-4xx. Numerator and denominator share the validity filter,
+      # so 5xx failures are never masked by 4xx traffic.
+      - record: sli:quote_availability:ratio_rate5m
+        expr: |
+          sum(rate(edge_requests_total{service="quote",code!~"5..",code!~"4.."}[5m]))
+          /
+          sum(rate(edge_requests_total{service="quote",code!~"4.."}[5m]))
+      - record: sli:quote_availability:ratio_rate1h
+        expr: |
+          sum(rate(edge_requests_total{service="quote",code!~"5..",code!~"4.."}[1h]))
+          /
+          sum(rate(edge_requests_total{service="quote",code!~"4.."}[1h]))
+      - record: sli:quote_availability:ratio_rate6h
+        expr: |
+          sum(rate(edge_requests_total{service="quote",code!~"5..",code!~"4.."}[6h]))
+          /
+          sum(rate(edge_requests_total{service="quote",code!~"4.."}[6h]))
+      # LATENCY SLI (5m): proportion served under 300ms, from the histogram,
+      # so it captures the tail rather than averaging it away.
+      - record: sli:quote_latency:ratio_rate5m
+        expr: |
+          sum(rate(edge_request_duration_seconds_bucket{service="quote",le="0.3"}[5m]))
+          /
+          sum(rate(edge_request_duration_seconds_count{service="quote"}[5m]))

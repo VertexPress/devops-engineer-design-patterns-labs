@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: quote-service
+  namespace: argocd
+spec:
+  source:
+    repoURL: https://github.com/vertexpress/devops-engineer-design-patterns-labs
+    path: deploy/quote-service
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: quote
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: quote-service-data
+  namespace: argocd
+spec:
+  source:
+    repoURL: https://github.com/vertexpress/devops-engineer-design-patterns-labs
+    path: deploy/quote-service-data
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: quote
+  syncPolicy: {}

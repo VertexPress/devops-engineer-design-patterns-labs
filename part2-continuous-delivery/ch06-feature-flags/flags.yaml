@@ -1,0 +1,10 @@
+flags:
+  new-pricing-model:
+    # Off by default. Deploying the code does not release the behavior.
+    enabled: false
+    # When turned on, release can be scoped rather than global: a percentage
+    # of users, or a named cohort, so behavior exposure has its own dial
+    # independent of how many instances run the code.
+    rollout:
+      percentage: 0
+      cohorts: []

@@ -1,0 +1,18 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: no-cluster-admin-bindings
+spec:
+  background: true
+  rules:
+    - name: disallow-cluster-admin
+      match:
+        any:
+          - resources:
+              kinds: [RoleBinding, ClusterRoleBinding]
+      validate:
+        failureAction: Enforce
+        message: "Binding to cluster-admin is refused."
+        pattern:
+          roleRef:
+            name: "!cluster-admin"

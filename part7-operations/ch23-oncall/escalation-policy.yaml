@@ -1,0 +1,12 @@
+rotation:
+  name: quote-service-primary
+  members: [eng-a, eng-b, eng-c, eng-d, eng-e, eng-f]
+  shift_length: 1w
+  handoff_time: "10:00"
+escalation_policy:
+  name: quote-service
+  rules:
+    - {level: 1, target: "rotation:quote-service-primary", escalate_after: 5m}
+    - {level: 2, target: "rotation:quote-service-secondary", escalate_after: 10m}
+    - {level: 3, target: "user:eng-lead", escalate_after: 15m}
+  repeat: 1

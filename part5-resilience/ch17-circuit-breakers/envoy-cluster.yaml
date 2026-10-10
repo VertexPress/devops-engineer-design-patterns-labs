@@ -1,0 +1,23 @@
+clusters:
+  - name: pricing_service
+    connect_timeout: 2s
+    type: STRICT_DNS
+    load_assignment:
+      cluster_name: pricing_service
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address: {address: pricing.internal, port_value: 8080}
+    circuit_breakers:
+      thresholds:
+        - priority: DEFAULT
+          max_connections: 100
+          max_pending_requests: 50
+          max_requests: 100
+          max_retries: 3
+    outlier_detection:
+      consecutive_5xx: 5
+      interval: 10s
+      base_ejection_time: 30s
+      max_ejection_percent: 50
